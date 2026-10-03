@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GCC Food Regulations Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --status-good:    #0ca30c;
+    --status-good-text: #006300;
+    --status-warn:    #fab219;
+    --series-1:       #2a78d6;
+    --series-2:       #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --status-good:    #0ca30c;
+      --status-good-text: #0ca30c;
+      --status-warn:    #fab219;
+      --series-1:       #3987e5;
+      --series-2:       #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --status-good:    #0ca30c;
+    --status-good-text: #0ca30c;
+    --status-warn:    #fab219;
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 20px 16px 48px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+
+  header.top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: 650;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0;
+    max-width: 640px;
+  }
+  .meta {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  button.theme-toggle {
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.theme-toggle:hover { border-color: var(--baseline); }
+
+  /* Stat tiles */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 760px) {
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+  }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .tile .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0 0 8px;
+  }
+  .tile .value {
+    font-size: 26px;
+    font-weight: 650;
+    line-height: 1.1;
+    margin: 0;
+  }
+  .tile .value small {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  section { margin-bottom: 32px; }
+  h2 {
+    font-size: 16px;
+    font-weight: 650;
+    margin: 0 0 4px;
+  }
+  .section-note {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 0 0 14px;
+    max-width: 760px;
+  }
+
+  /* Country cards */
+  .countries {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 760px) {
+    .countries { grid-template-columns: 1fr; }
+  }
+  .country-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .country-card h3 {
+    font-size: 15px;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .country-card h3 .flag { font-size: 18px; }
+  .country-card dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 112px 1fr;
+    gap: 6px 10px;
+    font-size: 13px;
+  }
+  .country-card dt {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .country-card dd {
+    margin: 0;
+    color: var(--text-primary);
+  }
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 9px 4px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--status-good) 14%, transparent);
+    color: var(--status-good-text);
+    border: 1px solid color-mix(in srgb, var(--status-good) 35%, transparent);
+  }
+  .badge svg { width: 11px; height: 11px; flex: none; }
+  .update-note {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gridline);
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+  .update-note strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* Timeline */
+  .timeline {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .timeline ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 2px solid var(--gridline);
+  }
+  .timeline li {
+    position: relative;
+    padding: 0 0 18px 20px;
+  }
+  .timeline li:last-child { padding-bottom: 0; }
+  .timeline li::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--series-1);
+    border: 2px solid var(--surface-1);
+  }
+  .timeline .date {
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--series-1);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .timeline .desc {
+    font-size: 13.5px;
+    color: var(--text-primary);
+  }
+  .timeline .desc .country {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* Table view */
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-1);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 760px;
+  }
+  thead th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gridline);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gridline);
+    vertical-align: top;
+    color: var(--text-primary);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: color-mix(in srgb, var(--series-1) 6%, transparent); }
+
+  footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gridline);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+  footer a { color: var(--text-secondary); }
+  footer ol { margin: 6px 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>GCC Food Regulations Dashboard</h1>
+      <p class="subtitle">Regulatory authorities, import/registration systems, and halal &amp; labeling requirements across the six GCC member states.</p>
+      <p class="meta">Last reviewed 3 Oct 2026 · informational reference — verify against the primary source before relying on it for compliance</p>
+    </div>
+    <button class="theme-toggle" id="themeToggle" type="button">Switch to dark mode</button>
+  </header>
+
+  <div class="tiles">
+    <div class="tile">
+      <p class="label">GCC member states</p>
+      <p class="value">6</p>
+    </div>
+    <div class="tile">
+      <p class="label">Unified regional standards body</p>
+      <p class="value">GSO</p>
+    </div>
+    <div class="tile">
+      <p class="label">Countries requiring halal certification</p>
+      <p class="value">6<small>of 6</small></p>
+    </div>
+    <div class="tile">
+      <p class="label">Major 2025 regulatory changes tracked</p>
+      <p class="value">4</p>
+    </div>
+  </div>
+
+  <section>
+    <h2>GSO — the shared layer</h2>
+    <p class="section-note">The GCC Standardization Organization (GSO) issues unified food standards that member states adopt or reference nationally — covering nutrition labeling, food-contact materials, additive limits, and category-specific rules (infant formula, marketing to children, shelf-life). National authorities below enforce these alongside their own import and registration regimes.</p>
+  </section>
+
+  <section>
+    <h2>Country-by-country requirements</h2>
+    <p class="section-note">Each state runs its own import registration platform in addition to GSO standards. All six currently require halal certification and Arabic-language labeling for food sold in-market.</p>
+    <div class="countries">
+
+      <div class="country-card">
+        <h3><span class="flag">🇸🇦</span> Saudi Arabia</h3>
+        <dl>
+          <dt>Authority</dt><dd>Saudi Food &amp; Drug Authority (SFDA)</dd>
+          <dt>Platform</dt><dd>Ghad (importer &amp; product registration) + SABER (conformity &amp; shipment certificates)</dd>
+        </dl>
+        <div class="badge-row">
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Halal required</span>
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Arabic label</span>
+        </div>
+        <p class="update-note"><strong>2025:</strong> since 1 Oct 2025, customs will not clear goods without a SABER Shipment Certificate.</p>
+      </div>
+
+      <div class="country-card">
+        <h3><span class="flag">🇦🇪</span> United Arab Emirates</h3>
+        <dl>
+          <dt>Authority</dt><dd>Ministry of Industry &amp; Advanced Technology (MoIAT, formerly ESMA) + emirate municipalities</dd>
+          <dt>Platform</dt><dd>ZAD (federal registration) + emirate portals (e.g. Dubai Municipality FIRS, Abu Dhabi ZADI)</dd>
+        </dl>
+        <div class="badge-row">
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Halal required</span>
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Bilingual label</span>
+        </div>
+        <p class="update-note"><strong>Note:</strong> every product needs both federal ZAD registration and the relevant emirate's customs/municipality clearance — the two layers aren't interchangeable.</p>
+      </div>
+
+      <div class="country-card">
+        <h3><span class="flag">🇶🇦</span> Qatar</h3>
+        <dl>
+          <dt>Authority</dt><dd>Ministry of Public Health (MOPH), Food Safety Department</dd>
+          <dt>Platform</dt><dd>Watheq electronic food-safety system</dd>
+        </dl>
+        <div class="badge-row">
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Halal required</span>
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Arabic label</span>
+        </div>
+        <p class="update-note"><strong>2025:</strong> adopted QS 10050:2025, a new technical regulation governing food shelf-life declarations.</p>
+      </div>
+
+      <div class="country-card">
+        <h3><span class="flag">🇰🇼</span> Kuwait</h3>
+        <dl>
+          <dt>Authority</dt><dd>Public Authority for Food &amp; Nutrition (PAFN); PAI for production facilities</dd>
+          <dt>Platform</dt><dd>PAFN product registration (per-product fee); KUCAS conformity scheme for general goods</dd>
+        </dl>
+        <div class="badge-row">
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Halal required</span>
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Arabic label</span>
+        </div>
+        <p class="update-note"><strong>Note:</strong> halal oversight runs through Kuwait's National Halal Food Committee, separate from PAFN's safety/nutrition review.</p>
+      </div>
+
+      <div class="country-card">
+        <h3><span class="flag">🇧🇭</span> Bahrain</h3>
+        <dl>
+          <dt>Authority</dt><dd>Ministry of Health, Public Health Directorate (Food Control Section)</dd>
+          <dt>Platform</dt><dd>Pre-import approval via the OFOQ Bahrain customs single window</dd>
+        </dl>
+        <div class="badge-row">
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Halal required</span>
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Arabic label</span>
+        </div>
+        <p class="update-note"><strong>Note:</strong> "special food" categories — infant formula, supplements, energy drinks — need a separate dedicated pre-import license on top of standard clearance.</p>
+      </div>
+
+      <div class="country-card">
+        <h3><span class="flag">🇴🇲</span> Oman</h3>
+        <dl>
+          <dt>Authority</dt><dd>Food Safety &amp; Quality Center (FSQC), Ministry of Agriculture, Fisheries &amp; Water Resources</dd>
+          <dt>Platform</dt><dd>Mandatory pre-registration for all food, local or imported</dd>
+        </dl>
+        <div class="badge-row">
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Halal required</span>
+          <span class="badge"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.2 11.5 13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Arabic label</span>
+        </div>
+        <p class="update-note"><strong>2025:</strong> mandatory food pre-registration took effect 1 Jan 2025, building a national food-traceability database.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>2025 regulatory timeline</h2>
+    <p class="section-note">The changes that moved this year across the bloc, in order.</p>
+    <div class="timeline">
+      <ol>
+        <li>
+          <span class="date">1 Jan 2025</span>
+          <span class="desc"><span class="country">Oman —</span> mandatory pre-registration of all food products (local and imported) takes effect under FSQC/MAFWR.</span>
+        </li>
+        <li>
+          <span class="date">1 Oct 2025</span>
+          <span class="desc"><span class="country">Saudi Arabia —</span> a SABER Shipment Certificate becomes a hard requirement for customs clearance of imported goods.</span>
+        </li>
+        <li>
+          <span class="date">Late 2025</span>
+          <span class="desc"><span class="country">Qatar —</span> QS 10050:2025 shelf-life technical regulation adopted, setting new rules for shelf-life declarations.</span>
+        </li>
+        <li>
+          <span class="date">2025 (consultation open to Sep 2026)</span>
+          <span class="desc"><span class="country">GSO —</span> draft GSO 2233:2025 nutrition labeling standard circulated for public comment, alongside new standards for infant formula (GSO 2106:2025) and marketing food to children (GSO 2725:2025).</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reference table</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Country</th>
+            <th>Regulatory authority</th>
+            <th>Registration / import system</th>
+            <th>Halal certification</th>
+            <th>Label language</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Saudi Arabia</td>
+            <td>Saudi Food &amp; Drug Authority (SFDA)</td>
+            <td>Ghad + SABER</td>
+            <td>Required</td>
+            <td>Arabic</td>
+          </tr>
+          <tr>
+            <td>United Arab Emirates</td>
+            <td>MoIAT (formerly ESMA) + emirate municipalities</td>
+            <td>ZAD + emirate portal (FIRS / ZADI / Dubai Trade)</td>
+            <td>Required</td>
+            <td>Arabic &amp; English</td>
+          </tr>
+          <tr>
+            <td>Qatar</td>
+            <td>Ministry of Public Health (MOPH)</td>
+            <td>Watheq</td>
+            <td>Required</td>
+            <td>Arabic</td>
+          </tr>
+          <tr>
+            <td>Kuwait</td>
+            <td>Public Authority for Food &amp; Nutrition (PAFN)</td>
+            <td>PAFN registration + KUCAS</td>
+            <td>Required</td>
+            <td>Arabic</td>
+          </tr>
+          <tr>
+            <td>Bahrain</td>
+            <td>Ministry of Health, Public Health Directorate</td>
+            <td>OFOQ Bahrain single window</td>
+            <td>Required</td>
+            <td>Arabic</td>
+          </tr>
+          <tr>
+            <td>Oman</td>
+            <td>Food Safety &amp; Quality Center (FSQC)</td>
+            <td>Mandatory pre-registration</td>
+            <td>Required</td>
+            <td>Arabic</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>For reference only — each authority's own published guidance is the binding source; confirm current requirements with the authority or an accredited local consultant before filing.</p>
+    <p>Sources:</p>
+    <ol>
+      <li><a href="https://www.gso.org.sa" target="_blank" rel="noopener">GCC Standardization Organization (GSO)</a></li>
+      <li><a href="https://food.chemlinked.com/news/food-news/gcc-drafts-english-version-of-gso-2235-requirements-of-nutritional-labeling" target="_blank" rel="noopener">GSO draft nutrition labeling standard — ChemLinked</a></li>
+      <li><a href="https://www.sfda.gov.sa" target="_blank" rel="noopener">Saudi Food &amp; Drug Authority (SFDA)</a></li>
+      <li><a href="https://www.majubiz.com/blog/how-to-register-products-in-saudi-arabia-2025-sfda-guide/" target="_blank" rel="noopener">SFDA / Ghad / SABER registration guide 2025</a></li>
+      <li><a href="https://www.gourmetpro.co/blog/uae-food-import-regulations-guide/" target="_blank" rel="noopener">UAE food import regulations — ZAD &amp; MoIAT</a></li>
+      <li><a href="https://emsfsa.moph.gov.qa/en/MOPH_Documents/Guides%20and%20Instructions/Food%20Importers%20Guide.pdf" target="_blank" rel="noopener">Qatar MOPH — Food Importers Guide</a></li>
+      <li><a href="https://productregistrationqatar.com/secure-moph-approval-before-importing-to-qatar-2025" target="_blank" rel="noopener">Qatar QS 10050:2025 shelf-life regulation</a></li>
+      <li><a href="https://www.pai.gov.kw/en/" target="_blank" rel="noopener">Kuwait Public Authority for Industry (PAI)</a></li>
+      <li><a href="https://www.pafn.gov.kw/assets/images/Uploads/202572894846.pdf" target="_blank" rel="noopener">Kuwait National Halal Food Committee — PAFN</a></li>
+      <li><a href="https://www.ofoq.gov.bh/pdf/License_SpecialFood_Guideline.pdf" target="_blank" rel="noopener">Bahrain — Special Food Licensing Guideline</a></li>
+      <li><a href="https://www.tridge.com/news/oman-announces-mandatory-food-pre-registrati-uqlgcy" target="_blank" rel="noopener">Oman — mandatory food pre-registration order</a></li>
+    </ol>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    var stored = null;
+    try { stored = localStorage.getItem('gcc-dash-theme'); } catch (e) {}
+    if (stored === 'light' || stored === 'dark') {
+      root.setAttribute('data-theme', stored);
+    }
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr === 'dark') return true;
+      if (attr === 'light') return false;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function render() {
+      btn.textContent = isDark() ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('gcc-dash-theme', next); } catch (e) {}
+      render();
+    });
+    render();
+  })();
+</script>
+</body>
+</html>
